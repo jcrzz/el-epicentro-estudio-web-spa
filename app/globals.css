@@ -1,0 +1,91 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-sans: Helvetica, Arial, sans-serif;
+  --font-serif: 'DM Serif Display', Georgia, serif;
+  --font-mono: Helvetica, Arial, sans-serif;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+}
+
+:root {
+  color-scheme: dark;
+  --background: oklch(0.105 0.008 20);
+  --foreground: oklch(0.96 0.012 65);
+  --card: oklch(0.16 0.012 20);
+  --card-foreground: oklch(0.96 0.012 65);
+  --primary: oklch(0.45 0.16 25);
+  --primary-foreground: oklch(0.985 0.01 65);
+  --muted-foreground: oklch(0.67 0.018 40);
+  --border: oklch(0.96 0.012 65 / 16%);
+  --ring: oklch(0.63 0.205 27);
+  --radius: 0.125rem;
+}
+
+* { @apply border-border outline-ring/50; }
+html { @apply bg-background scroll-smooth; }
+body { @apply bg-background text-foreground antialiased; }
+::selection { background: var(--primary); color: var(--primary-foreground); }
+
+@keyframes fade-up {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 30px, 0) scale(0.98);
+    filter: blur(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+    filter: blur(0);
+  }
+}
+
+.reveal {
+  opacity: 0;
+  transform: translate3d(0, 24px, 0);
+  transition:
+    opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.8s cubic-bezier(0.22, 1, 0.36, 1),
+    filter 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+  filter: blur(8px);
+}
+
+.reveal.is-visible {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+  filter: blur(0);
+}
+
+.hero-animate {
+  animation: fade-up 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+
+  .reveal,
+  .hero-animate {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
