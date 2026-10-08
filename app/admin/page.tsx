@@ -1,17 +1,107 @@
-'use client'
+"use client"
 
-import { FormEvent, useEffect, useState } from 'react'
-import Link from 'next/link'
-import { ArrowLeft, Pencil, Plus, Save, Trash2 } from 'lucide-react'
-import { defaultProjects, PROJECTS_KEY, type Project } from '@/lib/projects'
-
-const blank: Project = { id: '', type: 'SINGLE / 2026', title: '', artist: '', description: '', image: '', actionLabel: 'Escuchar', actionUrl: '', actionType: 'external', details: '' }
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { Plus } from "lucide-react"
+import { ProjectTable, ProjectForm } from "@/components/admin/AdminLayout"
+import { getProjects, deleteProject, updateProject, addProject } from "@/lib/admin-storage"
+import type { Project } from "@/lib/projects"
 
 export default function AdminPage() {
-  const [projects, setProjects] = useState<Project[]>(defaultProjects)
-  const [editing, setEditing] = useState<Project | null>(null)
-  useEffect(() => { try { setProjects(JSON.parse(localStorage.getItem(PROJECTS_KEY) || '') || defaultProjects) } catch {} }, [])
-  function persist(next: Project[]) { setProjects(next); localStorage.setItem(PROJECTS_KEY, JSON.stringify(next)) }
-  function submit(event: FormEvent) { event.preventDefault(); if (!editing?.title) return; const item = { ...editing, id: editing.id || crypto.randomUUID() }; persist(editing.id ? projects.map((p) => p.id === item.id ? item : p) : [item, ...projects]); setEditing(null) }
-  return <main className="min-h-screen bg-background"><header className="border-b border-border"><div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-6 lg:px-10"><Link href="/" className="flex items-center gap-3 text-sm uppercase tracking-[0.16em] text-muted-foreground hover:text-primary"><ArrowLeft className="size-4" /> Sitio público</Link><span className="font-mono text-xs tracking-[0.18em] text-primary">ADMIN / DEMO LOCAL</span></div></header><div className="mx-auto max-w-7xl px-5 py-12 lg:px-10 lg:py-20"><div className="flex flex-col justify-between gap-6 border-b border-border pb-8 md:flex-row md:items-end"><div><p className="mb-3 font-mono text-xs tracking-[0.2em] text-primary">GESTOR DE CONTENIDOS</p><h1 className="font-serif text-5xl text-foreground md:text-7xl">Proyectos<span className="text-primary">.</span></h1><p className="mt-4 max-w-lg text-sm leading-relaxed text-muted-foreground">Demo local: los cambios se guardan en este navegador y no incluyen autenticación ni base de datos.</p></div><button onClick={() => setEditing(blank)} className="inline-flex w-fit items-center gap-2 bg-primary px-5 py-3 text-xs font-semibold uppercase tracking-[0.16em] text-primary-foreground hover:bg-foreground hover:text-background"><Plus className="size-4" /> Nuevo proyecto</button></div><div className="mt-10 grid gap-3">{projects.map((project) => <div key={project.id} className="flex flex-col justify-between gap-5 border border-border bg-card p-5 md:flex-row md:items-center"><div><p className="font-mono text-[10px] tracking-[0.16em] text-primary">{project.type}</p><h2 className="mt-2 font-serif text-2xl text-foreground">{project.title}</h2><p className="text-sm text-muted-foreground">{project.artist}</p></div><div className="flex gap-2"><button onClick={() => setEditing(project)} className="inline-flex items-center gap-2 border border-border px-4 py-2 text-xs uppercase tracking-[0.12em] text-foreground hover:border-primary hover:text-primary"><Pencil className="size-3" /> Editar</button><button onClick={() => persist(projects.filter((p) => p.id !== project.id))} className="grid size-9 place-items-center border border-border text-muted-foreground hover:border-primary hover:text-primary" aria-label={`Eliminar ${project.title}`}><Trash2 className="size-4" /></button></div></div>)}</div></div>{editing && <div className="fixed inset-0 z-[60] overflow-y-auto bg-background/90 p-4 backdrop-blur-sm"><form onSubmit={submit} className="mx-auto my-8 flex max-w-2xl flex-col gap-5 border border-border bg-card p-6 md:p-9"><div className="flex items-center justify-between"><h2 className="font-serif text-3xl text-foreground">{editing.id ? 'Editar proyecto' : 'Nuevo proyecto'}</h2><button type="button" onClick={() => setEditing(null)} className="text-sm text-muted-foreground hover:text-primary">Cerrar</button></div>{[['type','Tipo / año'],['title','Título'],['artist','Artista'],['image','URL de la foto'],['description','Descripción breve'],['details','Información completa'],['actionLabel','Texto del botón'],['actionUrl','Link de YouTube o plataforma']].map(([key,label]) => <label key={key} className="flex flex-col gap-2 text-xs uppercase tracking-[0.14em] text-muted-foreground">{label}<input required={['title','artist','image','actionUrl'].includes(key)} value={editing[key as keyof Project] as string} onChange={(e) => setEditing({ ...editing, [key]: e.target.value })} className="border-b border-border bg-transparent px-0 py-3 text-sm normal-case tracking-normal text-foreground outline-none focus:border-primary" /></label>)}<label className="flex flex-col gap-2 text-xs uppercase tracking-[0.14em] text-muted-foreground">Tipo de contenido<select value={editing.actionType} onChange={(e) => setEditing({ ...editing, actionType: e.target.value as Project['actionType'] })} className="border border-border bg-background p-3 text-sm normal-case tracking-normal text-foreground outline-none"><option value="external">Link externo / escuchar</option><option value="youtube">Video de YouTube</option></select></label><button className="mt-4 inline-flex items-center justify-center gap-2 bg-primary px-5 py-3 text-xs font-semibold uppercase tracking-[0.16em] text-primary-foreground hover:bg-foreground hover:text-background"><Save className="size-4" /> Guardar proyecto</button></form></div>}</main>
+  const router = useRouter()
+  const [editingProject, setEditingProject] = useState<Project | null>(null)
+  const [deletingProject, setDeletingProject] = useState<Project | null>(null)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+
+  const handleEdit = (project: Project) => {
+    setEditingProject(project)
+  }
+
+  const handleDelete = (project: Project) => {
+    setDeletingProject(project)
+    setShowDeleteConfirm(true)
+  }
+
+  const confirmDelete = () => {
+    if (deletingProject) {
+      deleteProject(deletingProject.id)
+      setDeletingProject(null)
+      setShowDeleteConfirm(false)
+    }
+  }
+
+  const cancelDelete = () => {
+    setDeletingProject(null)
+    setShowDeleteConfirm(false)
+  }
+
+  const handleFormSubmit = (data: Project) => {
+    if (editingProject) {
+      updateProject(editingProject.id, data)
+    } else {
+      addProject(data)
+    }
+    setEditingProject(null)
+    router.refresh()
+  }
+
+  const handleCancel = () => {
+    setEditingProject(null)
+  }
+
+  if (editingProject) {
+    return (
+      <ProjectForm
+        initialData={editingProject}
+        onSubmit={handleFormSubmit}
+        onCancel={handleCancel}
+      />
+    )
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Proyectos</h1>
+          <p className="text-muted mt-1">Gestioná los proyectos que se muestran en el carrusel.</p>
+        </div>
+        <button
+          onClick={() => router.push("/admin/nuevo")}
+          className="inline-flex items-center gap-2 bg-accent px-6 py-3 text-sm font-medium text-black hover:bg-accent-strong"
+        >
+          <Plus className="size-4" />
+          Nuevo proyecto
+        </button>
+      </div>
+
+      <ProjectTable onEdit={handleEdit} onDelete={handleDelete} />
+
+      {showDeleteConfirm && deletingProject && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-background border border-line rounded-xl p-6 max-w-md w-full">
+            <h3 className="text-lg font-medium mb-2">Eliminar proyecto</h3>
+            <p className="text-muted mb-6">
+              ¿Seguro que querés eliminar <strong className="text-foreground">{deletingProject.title}</strong>?
+              Esta acción no se puede deshacer.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={cancelDelete}
+                className="px-4 py-2 border border-line text-sm font-medium text-muted hover:border-accent hover:text-accent transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="px-4 py-2 bg-accent text-sm font-medium text-black hover:bg-accent-strong transition-colors"
+              >
+                Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
 }

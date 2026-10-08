@@ -1,91 +1,144 @@
-@import 'tailwindcss';
-@import 'tw-animate-css';
-@import 'shadcn/tailwind.css';
+@import "tailwindcss";
 
-@custom-variant dark (&:is(.dark *));
+@theme {
+  --font-sans: Helvetica, "Helvetica Neue", Arial, sans-serif;
 
-@theme inline {
-  --font-sans: Helvetica, Arial, sans-serif;
-  --font-serif: 'DM Serif Display', Georgia, serif;
-  --font-mono: Helvetica, Arial, sans-serif;
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-border: var(--border);
-  --color-ring: var(--ring);
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
-  --radius-lg: var(--radius);
+  --color-background: #000000;
+  --color-foreground: #fafafa;
+  --color-muted: #a1a1aa;
+  --color-faint: #71717a;
+  --color-line: #27272a;
+  --color-surface: #0a0a0a;
+  --color-accent: #ff2d1a;
+  --color-accent-strong: #d92110;
 }
 
-:root {
-  color-scheme: dark;
-  --background: oklch(0.105 0.008 20);
-  --foreground: oklch(0.96 0.012 65);
-  --card: oklch(0.16 0.012 20);
-  --card-foreground: oklch(0.96 0.012 65);
-  --primary: oklch(0.45 0.16 25);
-  --primary-foreground: oklch(0.985 0.01 65);
-  --muted-foreground: oklch(0.67 0.018 40);
-  --border: oklch(0.96 0.012 65 / 16%);
-  --ring: oklch(0.63 0.205 27);
-  --radius: 0.125rem;
+@layer base {
+  *,
+  ::before,
+  ::after {
+    border-color: var(--color-line);
+  }
+
+  html {
+    color-scheme: dark;
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  section[id] {
+    scroll-margin-top: 4.5rem;
+  }
+
+  ::selection {
+    background-color: var(--color-accent);
+    color: #000000;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 3px;
+  }
 }
 
-* { @apply border-border outline-ring/50; }
-html { @apply bg-background scroll-smooth; }
-body { @apply bg-background text-foreground antialiased; }
-::selection { background: var(--primary); color: var(--primary-foreground); }
-
-@keyframes fade-up {
-  0% {
+/*
+  Entrada del hero: un único momento orquestado al cargar.
+  El contenido nace visible vía animation-fill-mode; con
+  prefers-reduced-motion la animación termina al instante.
+*/
+@keyframes epicentro-rise {
+  from {
     opacity: 0;
-    transform: translate3d(0, 30px, 0) scale(0.98);
-    filter: blur(10px);
+    transform: translateY(18px);
   }
-  100% {
+  to {
     opacity: 1;
-    transform: translate3d(0, 0, 0) scale(1);
-    filter: blur(0);
+    transform: none;
   }
 }
 
-.reveal {
-  opacity: 0;
-  transform: translate3d(0, 24px, 0);
-  transition:
-    opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1),
-    transform 0.8s cubic-bezier(0.22, 1, 0.36, 1),
-    filter 0.8s cubic-bezier(0.22, 1, 0.36, 1);
-  filter: blur(8px);
+@keyframes epicentro-rings {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
 }
 
-.reveal.is-visible {
-  opacity: 1;
-  transform: translate3d(0, 0, 0);
-  filter: blur(0);
+.animate-rise {
+  animation: epicentro-rise 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) both;
 }
 
-.hero-animate {
-  animation: fade-up 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+.animate-rings {
+  animation: epicentro-rings 1.6s cubic-bezier(0.2, 0.7, 0.2, 1) both;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  html { scroll-behavior: auto; }
-  *, *::before, *::after {
-    transition-duration: 0.01ms !important;
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
+  html {
+    scroll-behavior: auto;
   }
 
-  .reveal,
-  .hero-animate {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@keyframes epicentro-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
     opacity: 1;
     transform: none;
-    filter: none;
   }
+}
+
+.reveal-in .reveal-item {
+  animation: epicentro-reveal 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  animation-delay: calc(var(--stagger, 0) * 1ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal-in .reveal-item {
+    animation: none;
+    opacity: 1;
+  }
+}
+
+button.active\:scale-\[0\.98\]:active,
+a.active\:scale-\[0\.98\]:active {
+  transform: scale(0.98);
+}
+
+.group.active\:scale-\[0\.99\]:active img {
+  transform: scale(0.99);
+}
+
+a.active\:opacity-70:active {
+  opacity: 0.7;
+}
+
+.active\:scale-\[0\.9\]:active {
+  transform: scale(0.9);
+}
+
+input:hover:not(:focus),
+textarea:hover:not(:focus) {
+  border-color: var(--color-line);
 }
